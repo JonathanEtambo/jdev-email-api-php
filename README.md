@@ -205,14 +205,14 @@ Accept: application/json
 ### 8.1 cURL (Linux / macOS)
 
 ```bash
-curl -X POST "http://localhost/jdevmail/api/send-email" \
+curl -X POST "https://jdev.fermekilo6.com/api/send-email" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
-    "site_id":"site_xxxxx",
-    "public_key":"jpk_xxxxx",
-    "secret_key":"jsk_xxxxx",
-    "to":"client@example.com",
+    "site_id":"site_d0436b925c563972",
+    "public_key":"jpk_4673613909a30cba350221b1bdb824d2",
+    "secret_key":"jsk_76a3208d77f02be21545b783ffdea27649f331a985da320407c8259ff41403f9",
+    "to":"jodzoko@gmail.com",
     "subject":"Test API",
     "html_content":"<p>Bonjour depuis cURL</p>"
   }'

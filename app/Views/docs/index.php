@@ -310,7 +310,7 @@ function codeBlock($code) {
 
             <h5>URL</h5>
 
-            <?php codeBlock(APP_URL . '/api/send-email'); ?>
+            <?php codeBlock('https://jdev.fermekilo6.com//api/send-email'); ?>
 
             <h5 class="mt-4">Headers</h5>
 

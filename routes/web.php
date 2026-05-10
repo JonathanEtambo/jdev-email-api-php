@@ -3,6 +3,7 @@
 $router->add('GET', '/', 'HomeController@index');
 $router->add('GET', '/pricing', 'HomeController@pricing');
 $router->add('GET', '/docs', 'DocsController@index');
+$router->add('GET', '/dx-code/contact', 'ContactController@dxCodeContact');
 
 $router->add('GET', '/login', 'AuthController@showLogin');
 $router->add('POST', '/login', 'AuthController@login');

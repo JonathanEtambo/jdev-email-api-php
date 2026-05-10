@@ -10,8 +10,27 @@ use App\Services\MailService;
 use App\Services\RateLimitService;
 use Throwable;
 
-class ApiController extends Controller {
-    private function errorResponse(int $status, string $message, string $code, array $extra = []) {
+class ApiController extends Controller
+{
+    private function cors(): void
+    {
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+
+        header("Access-Control-Allow-Origin: {$origin}");
+        header("Vary: Origin");
+        header("Access-Control-Allow-Methods: POST, OPTIONS");
+        header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization, X-Requested-With");
+        header("Access-Control-Max-Age: 86400");
+        header("Content-Type: application/json; charset=utf-8");
+
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(204);
+            exit;
+        }
+    }
+
+    private function errorResponse(int $status, string $message, string $code, array $extra = [])
+    {
         return $this->json(array_merge([
             'success' => false,
             'error' => $message,
@@ -19,12 +38,20 @@ class ApiController extends Controller {
         ], $extra), $status);
     }
 
-    private function hasHeaderInjection(string $value): bool {
+    private function hasHeaderInjection(string $value): bool
+    {
         return preg_match('/[\r\n]/', $value) === 1;
     }
 
-    public function sendEmail() {
+    public function sendEmail()
+    {
+        $this->cors();
+
         try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                return $this->errorResponse(405, 'Method not allowed', 'method_not_allowed');
+            }
+
             $rawBody = file_get_contents('php://input');
             $data = json_decode($rawBody, true);
 
@@ -33,6 +60,7 @@ class ApiController extends Controller {
             }
 
             $required = ['site_id', 'public_key', 'secret_key', 'to', 'subject', 'html_content'];
+
             foreach ($required as $field) {
                 if (!isset($data[$field]) || trim((string) $data[$field]) === '') {
                     return $this->errorResponse(400, "Field '{$field}' is required", 'validation_error');
@@ -70,12 +98,14 @@ class ApiController extends Controller {
             $rateLimit = new RateLimitService();
 
             $site = $siteModel->verifyKeys($siteId, $publicKey, $secretKey);
+
             if (!$site) {
                 return $this->errorResponse(401, 'Invalid API credentials or inactive site', 'invalid_credentials');
             }
 
             $limitPerMinute = max(1, (int) ($site['rate_limit_per_minute'] ?? RATE_LIMIT_DEFAULT));
             $limitResult = $rateLimit->checkLimit($publicKey, $limitPerMinute, '/api/send-email');
+
             if (!$limitResult['allowed']) {
                 return $this->errorResponse(429, 'Rate limit exceeded', 'rate_limit_exceeded', [
                     'retry_after_seconds' => $limitResult['retry_after_seconds'] ?? 60
@@ -83,6 +113,7 @@ class ApiController extends Controller {
             }
 
             $user = $userModel->find((int) $site['user_id']);
+
             if (!$user || ($user['status'] ?? 'suspended') !== 'active') {
                 $logModel->log([
                     'user_id' => (int) ($site['user_id'] ?? 0),
@@ -98,6 +129,7 @@ class ApiController extends Controller {
 
             $subscription = $subModel->getActiveSubscription((int) $user['id']);
             $isTrialMode = !$subscription || (($subscription['slug'] ?? 'free') === 'free');
+
             $trialLimit = (int) ($user['trial_limit'] ?? TRIAL_EMAIL_LIMIT);
             $trialSent = (int) ($user['trial_emails_sent'] ?? 0);
 
@@ -118,13 +150,14 @@ class ApiController extends Controller {
             $result = $mailService->sendHtmlMail($to, $subject, $htmlContent, $textContent);
 
             $status = $result['success'] ? 'sent' : 'failed';
+
             $logModel->log([
                 'user_id' => (int) $user['id'],
                 'site_id' => (int) $site['id'],
                 'recipient' => $to,
                 'subject' => $subject,
                 'status' => $status,
-                'error_message' => $result['error']
+                'error_message' => $result['error'] ?? null
             ]);
 
             if (!$result['success']) {
@@ -132,6 +165,7 @@ class ApiController extends Controller {
             }
 
             $siteModel->incrementSentEmails((int) $site['id']);
+
             if ($isTrialMode) {
                 $userModel->incrementTrialEmails((int) $user['id']);
             }
@@ -148,6 +182,7 @@ class ApiController extends Controller {
                     'plan_mode' => $isTrialMode ? 'trial' : 'paid'
                 ]
             ]);
+
         } catch (Throwable $e) {
             return $this->errorResponse(500, 'Internal server error', 'internal_error');
         }
