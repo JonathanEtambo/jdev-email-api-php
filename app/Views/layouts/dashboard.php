@@ -1,218 +1,335 @@
+<?php
+use App\Core\Session;
+
+$isLoggedIn = !empty(Session::get('user_id'));
+$userRole   = Session::get('user_role') ?? null;
+$userName   = Session::get('user_name') ?? 'Utilisateur';
+
+$currentUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+
+function active_link(string $path, string $currentUri): string {
+    return str_contains($currentUri, $path) ? 'active' : '';
+}
+?>
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $title ?? APP_NAME; ?></title>
+    <title><?= htmlspecialchars($title ?? APP_NAME, ENT_QUOTES, 'UTF-8'); ?></title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?= APP_URL; ?>/assets/css/style.css">
+
     <style>
         :root {
             --accent: #2da44e;
             --accent-hover: #1a6e3a;
-            --nav-bg: #ffffff;
+            --accent-light: rgba(45, 164, 78, 0.12);
+            --bg-body: #f6f8fa;
+            --bg-panel: #ffffff;
             --text-main: #1a1e2b;
+            --text-muted: #64748b;
+            --border-color: #d0d7de;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #0d1117;
+            --bg-panel: #161b22;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --border-color: #30363d;
         }
 
         body {
-            background-color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-body);
             color: var(--text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        /* Navbar Style Premium */
-        .navbar-premium {
-            background: var(--nav-bg);
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            padding: 0.75rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        .jdev-navbar {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-color);
+            padding: .85rem 0;
         }
 
-        .navbar-brand-premium {
+        [data-theme="dark"] .jdev-navbar {
+            background: rgba(22,27,34,0.9);
+        }
+
+        .jdev-brand {
             font-weight: 800;
+            font-size: 1.35rem;
             color: var(--text-main);
-            letter-spacing: -0.5px;
-            font-size: 1.25rem;
+            text-decoration: none;
         }
 
-        .navbar-brand-premium span {
+        .jdev-brand span {
             color: var(--accent);
         }
 
-        /* Nav Links */
-        .nav-link-premium {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #64748b;
-            padding: 0.5rem 1rem !important;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-        .nav-link-premium:hover {
-            color: var(--accent);
-            background: #f0fdf4;
-        }
-
-        .nav-link-premium.active {
-            color: var(--accent);
-            background: #f0fdf4;
-        }
-
-        /* Buttons */
-        .btn-admin {
-            background: var(--accent);
-            color: white !important;
-            border: none;
-            font-weight: 600;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(45, 164, 78, 0.2);
-        }
-
-        .btn-logout {
-            border: 1px solid #fee2e2;
-            color: #ef4444;
-            font-weight: 600;
-            border-radius: 8px;
-        }
-
-        .btn-logout:hover {
-            background: #fef2f2;
-            color: #dc2626;
-            border-color: #fca5a5;
-        }
-
-        /* Theme Toggle */
-        .theme-switch {
+        .jdev-brand-icon {
             width: 38px;
             height: 38px;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            display: flex;
+            border-radius: 12px;
+            background: var(--accent-light);
+            color: var(--accent);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #64748b;
-            transition: all 0.2s;
+            margin-right: 8px;
+        }
+
+        .jdev-nav-link {
+            color: var(--text-muted) !important;
+            font-weight: 600;
+            font-size: .92rem;
+            padding: .55rem .85rem !important;
+            border-radius: 10px;
+        }
+
+        .jdev-nav-link:hover,
+        .jdev-nav-link.active {
+            color: var(--accent) !important;
+            background: var(--accent-light);
+        }
+
+        .btn-jdev {
+            background: var(--accent);
+            color: #fff !important;
+            border-radius: 999px;
+            font-weight: 700;
+            border: none;
+            padding: .55rem 1rem;
+        }
+
+        .btn-jdev:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-jdev-outline {
+            border: 1px solid var(--border-color);
+            color: var(--text-main) !important;
+            background: var(--bg-panel);
+            border-radius: 999px;
+            font-weight: 700;
+            padding: .55rem 1rem;
+        }
+
+        .btn-jdev-outline:hover {
+            border-color: var(--accent);
+            color: var(--accent) !important;
+            background: var(--accent-light);
+        }
+
+        .theme-switch {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-panel);
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .theme-switch:hover {
-            border-color: var(--accent);
             color: var(--accent);
+            border-color: var(--accent);
         }
 
-        /* Styles de base (Light par défaut) */
-:root {
-    --bg-body: #f8fafc;
-    --bg-card: #ffffff;
-    --text-main: #1a1e2b;
-    --nav-bg: #ffffff;
-    --border-color: rgba(0,0,0,0.05);
-}
+        .user-pill {
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 999px;
+            padding: .45rem .8rem;
+            font-weight: 700;
+            font-size: .85rem;
+        }
 
-/* Styles pour le mode sombre */
-[data-theme="dark"] {
-    --bg-body: #0d1117;
-    --bg-card: #161b22;
-    --text-main: #e6edf3;
-    --nav-bg: #161b22;
-    --border-color: rgba(255,255,255,0.1);
-}
+        main {
+            min-height: calc(100vh - 150px);
+        }
 
-body {
-    background-color: var(--bg-body);
-    color: var(--text-main);
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
+        .footer-jdev {
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-panel);
+        }
 
-.stat-card-premium, .premium-table-card, .navbar-premium {
-    background-color: var(--bg-card) !important;
-    border-color: var(--border-color) !important;
-}
+        @media (max-width: 991px) {
+            .jdev-actions {
+                padding-top: 1rem;
+                align-items: stretch !important;
+            }
 
-.navbar-brand-premium, .nav-link-premium {
-    color: var(--text-main) !important;
-}
+            .jdev-actions .btn,
+            .jdev-actions .theme-switch {
+                width: 100%;
+            }
+        }
     </style>
 </head>
+
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-premium sticky-top">
-    <div class="container-fluid px-lg-5">
-        <a class="navbar-brand navbar-brand-premium" href="<?php echo APP_URL; ?>/dashboard">
+<nav class="navbar navbar-expand-lg sticky-top jdev-navbar">
+    <div class="container">
+
+        <a class="jdev-brand d-flex align-items-center" href="<?= APP_URL; ?>">
+            <span class="jdev-brand-icon">
+                <i class="bi bi-envelope-paper-heart-fill"></i>
+            </span>
             JDev<span>Mail</span>
         </a>
-        
+
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
+            <i class="bi bi-list fs-1"></i>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarNav">
-            <div class="navbar-nav mx-auto gap-1">
-                <a href="<?php echo APP_URL; ?>/dashboard" class="nav-link nav-link-premium">Dashboard</a>
-                <a href="<?php echo APP_URL; ?>/sites" class="nav-link nav-link-premium">Mes Sites</a>
-                <a href="<?php echo APP_URL; ?>/subscriptions" class="nav-link nav-link-premium">Abonnements</a>
-            </div>
 
-            <div class="d-flex align-items-center gap-3">
-                <button class="theme-switch" type="button" data-theme-toggle title="Changer de thème">
-                    <i class="bi bi-moon-stars"></i>
-                </button>
+            <?php if ($isLoggedIn): ?>
 
-                <?php if ((\App\Core\Session::get('user_role') ?? '') === 'admin'): ?>
-                    <a href="<?php echo APP_URL; ?>/admin" class="btn btn-sm btn-admin px-3">
-                        <i class="bi bi-shield-check me-1"></i> Admin
+                <ul class="navbar-nav mx-auto gap-lg-1">
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/dashboard', $currentUri); ?>" href="<?= APP_URL; ?>/dashboard">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/sites', $currentUri); ?>" href="<?= APP_URL; ?>/sites">
+                            <i class="bi bi-globe2 me-1"></i> Mes sites
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/docs', $currentUri); ?>" href="<?= APP_URL; ?>/docs">
+                            <i class="bi bi-code-square me-1"></i> Docs API
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/pricing', $currentUri); ?>" href="<?= APP_URL; ?>/pricing">
+                            <i class="bi bi-credit-card me-1"></i> Abonnement
+                        </a>
+                    </li>
+
+                    <?php if ($userRole === 'admin'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link jdev-nav-link <?= active_link('/admin', $currentUri); ?>" href="<?= APP_URL; ?>/admin">
+                                <i class="bi bi-shield-lock me-1"></i> Admin
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+
+                <div class="d-flex align-items-center gap-2 jdev-actions">
+                    <button class="theme-switch" type="button" data-theme-toggle>
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+
+                    <span class="user-pill d-none d-lg-inline-flex">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <?= htmlspecialchars($userName, ENT_QUOTES, 'UTF-8'); ?>
+                    </span>
+
+                    <a class="btn btn-jdev-outline btn-sm" href="<?= APP_URL; ?>/logout">
+                        <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
                     </a>
-                <?php endif; ?>
+                </div>
 
-                <a href="<?php echo APP_URL; ?>/logout" class="btn btn-sm btn-logout px-3">
-                    <i class="bi bi-box-arrow-right"></i>
-                </a>
-            </div>
+            <?php else: ?>
+
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/', $currentUri); ?>" href="<?= APP_URL; ?>">
+                            Accueil
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/pricing', $currentUri); ?>" href="<?= APP_URL; ?>/pricing">
+                            Tarifs
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link jdev-nav-link <?= active_link('/docs', $currentUri); ?>" href="<?= APP_URL; ?>/docs">
+                            Documentation
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <button class="theme-switch" type="button" data-theme-toggle>
+                            <i class="bi bi-moon-stars"></i>
+                        </button>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="btn btn-jdev-outline btn-sm" href="<?= APP_URL; ?>/login">
+                            Connexion
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="btn btn-jdev btn-sm" href="<?= APP_URL; ?>/register">
+                            Démarrer gratuitement
+                        </a>
+                    </li>
+                </ul>
+
+            <?php endif; ?>
+
         </div>
     </div>
 </nav>
 
-<main class="container-fluid px-lg-5 py-4">
-    <?php echo $content; ?>
+<main>
+    <?= $content; ?>
 </main>
 
+<footer class="footer-jdev py-4 mt-5">
+    <div class="container text-center small text-muted">
+        JDevMail © <?= date('Y'); ?> —
+        Développé par
+        <strong><?= htmlspecialchars($founder['name'] ?? 'JONATHAN DZOKO', ENT_QUOTES, 'UTF-8'); ?></strong>
+    </div>
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="<?php echo APP_URL; ?>/assets/js/main.js"></script>
-<script src="<?php echo APP_URL; ?>/assets/js/dashboard.js"></script>
+<script src="<?= APP_URL; ?>/assets/js/main.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
+    const html = document.documentElement;
     const themeToggle = document.querySelector('[data-theme-toggle]');
-    const htmlElement = document.documentElement;
-    
-    // 1. Vérifier s'il y a un thème enregistré dans le navigateur
+
     const savedTheme = localStorage.getItem('theme') || 'light';
-    htmlElement.setAttribute('data-theme', savedTheme);
-    updateIcon(savedTheme);
+    html.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
 
-    // 2. Écouter le clic sur le bouton
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = htmlElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        
-        // Appliquer le thème
-        htmlElement.setAttribute('data-theme', newTheme);
-        // Sauvegarder le choix
-        localStorage.setItem('theme', newTheme);
-        // Mettre à jour l'icône
-        updateIcon(newTheme);
-    });
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+            const currentTheme = html.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
 
-    function updateIcon(theme) {
-        const icon = themeToggle.querySelector('i');
-        if (theme === 'dark') {
-            icon.classList.replace('bi-moon-stars', 'bi-sun');
-        } else {
-            icon.classList.replace('bi-sun', 'bi-moon-stars');
-        }
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+    }
+
+    function updateThemeIcon(theme) {
+        const icon = document.querySelector('[data-theme-toggle] i');
+        if (!icon) return;
+
+        icon.classList.toggle('bi-sun', theme === 'dark');
+        icon.classList.toggle('bi-moon-stars', theme !== 'dark');
     }
 });
 </script>
