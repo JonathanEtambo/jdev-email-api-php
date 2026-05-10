@@ -1,0 +1,15 @@
+RewriteEngine On
+RewriteBase /jdevmail/
+
+Options -Indexes
+
+# Accès racine -> front controller
+RewriteRule ^$ public/index.php [L,QSA]
+
+# Si le fichier existe réellement à la racine, on le sert tel quel
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Tout le reste passe par le front controller
+RewriteRule ^(.*)$ public/index.php [L,QSA]
